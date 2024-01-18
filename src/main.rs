@@ -1,6 +1,6 @@
 pub mod ui;
 pub mod app;
-pub mod app_backend;
+pub mod backend;
 
 use anyhow::{Result, Context};
 
