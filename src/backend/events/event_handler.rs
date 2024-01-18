@@ -1,46 +1,70 @@
 use anyhow::{Context, Result};
 use crossterm::event::{self, Event, KeyCode};
 use std::{
-    sync::mpsc,
     thread::{self, JoinHandle},
     time::Duration,
 };
 
 use crate::{backend::AppBackend, ui};
 
+use crossbeam::channel;
+
+// TODO create a seperate channel for input events, as these may be blocking with other terminal events and need to be cleared if the channel is stacked
+// TODO use bounded channels with crossbeam prolly
 
 pub struct EventHandler {
-    crossterm_event_tx: mpsc::Sender<crossterm::event::Event>,
-    crossterm_event_rx: mpsc::Receiver<crossterm::event::Event>,
+    crossterm_event_tx: crossbeam::channel::Sender<crossterm::event::Event>,
+    crossterm_event_rx: crossbeam::channel::Receiver<crossterm::event::Event>,
+    input_event_tx: crossbeam::channel::Sender<crossterm::event::KeyEvent>,
+    input_event_rx: crossbeam::channel::Receiver<crossterm::event::KeyEvent>,
     event_listener: JoinHandle<()>,
 }
 
 impl EventHandler {
     pub fn new() -> Result<EventHandler> {
-        let (crossterm_event_tx, crossterm_event_rx) = mpsc::channel();
+        let (crossterm_event_tx, crossterm_event_rx) = crossbeam::channel::unbounded();
+        let (input_event_tx, input_event_rx) = crossbeam::channel::bounded(3);
 
         let crossterm_event_tx_clone = crossterm_event_tx.clone();
+        let input_event_tx_clone = input_event_tx.clone();
 
         let event_listener = thread::spawn(move || loop {
             if let Ok(event) = event::read() {
-                crossterm_event_tx_clone.send(event).expect("Unable to send message to crossterm_event mpsc while inside event_listener thread");
+                match event {
+                    Event::Key(key_event) => {
+                        input_event_tx_clone.try_send(key_event).ok();
+                    }
+
+                    _ => {
+                        crossterm_event_tx_clone.send(event.clone()).ok();
+                    }
+                }
             }
-            thread::sleep(Duration::from_millis(50));
+            thread::sleep(Duration::from_millis(30));
         });
 
         Ok(EventHandler {
             crossterm_event_tx,
             crossterm_event_rx,
+            input_event_tx,
+            input_event_rx,
             event_listener,
         })
     }
 
     pub fn process_events(&self, app_backend: &mut AppBackend) -> Result<()> {
-        let event = self
-            .crossterm_event_rx
-            .recv()
-            .context("[process_events] Failed to receive from mpsc channel")?;
-        process_crossterm_event(event, app_backend).context("Failed to process crossterm event")?;
+        let crossterm_event = self.crossterm_event_rx.try_recv();
+
+        let key_event = self.input_event_rx.try_recv();
+
+        if let Ok(event) = crossterm_event {
+            process_crossterm_event(event, app_backend)
+                .context("Failed to process crossterm event")?;
+        }
+
+        if let Ok(key) = key_event {
+            process_key_event(key, app_backend);
+        }
         Ok(())
     }
 }
@@ -50,15 +74,11 @@ fn process_crossterm_event(
     app_backend: &mut AppBackend,
 ) -> Result<()> {
     match event {
-        Event::Key(key) => {
-            process_key_event(key, app_backend);
-            Ok(())
-        }
-
         Event::Resize(_width, _height) => {
             let terminal = &mut app_backend.terminal;
             let ui = &app_backend.tabs.selected_tab_ref().ui;
-            ui::functions::process_terminal_resize(terminal, ui).context("Failed to respond to terminal resize")?;
+            ui::functions::process_terminal_resize(terminal, ui)
+                .context("Failed to respond to terminal resize")?;
             Ok(())
         }
 
@@ -67,15 +87,10 @@ fn process_crossterm_event(
 }
 
 fn process_key_event(key: crossterm::event::KeyEvent, app_backend: &mut AppBackend) {
-    if key.code == KeyCode::Char('q') {
-        app_backend.exit_app().unwrap();
-    }
-
-    if key.code == KeyCode::Char('j') {
-        app_backend.select_next();
-    }
-
-    if key.code == KeyCode::Char('k') {
-        app_backend.select_previous();
+    match key.code {
+        KeyCode::Char('q') => app_backend.exit_app().unwrap(),
+        KeyCode::Char('j') => app_backend.select_next(),
+        KeyCode::Char('k') => app_backend.select_previous(),
+        _ => (),
     }
 }

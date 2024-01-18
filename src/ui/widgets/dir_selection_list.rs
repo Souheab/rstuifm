@@ -3,7 +3,7 @@ use std::io::Stdout;
 use ratatui::{
     backend::CrosstermBackend,
     buffer::Buffer,
-    layout::{Rect, Layout, Direction, Constraint},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
     widgets::{Block, Borders, List, ListState, StatefulWidget},
     Terminal,
@@ -31,7 +31,7 @@ impl DirSelectionList {
     pub fn select_next(&mut self) {
         match self.state.selected() {
             Some(index) => {
-                if self.items.len()!= 0 && index >= self.items.len() - 1 {
+                if self.items.len() != 0 && index >= self.items.len() - 1 {
                     self.select(0);
                 } else {
                     self.select(index + 1);
@@ -46,16 +46,13 @@ impl DirSelectionList {
             Some(index) => {
                 if index != 0 {
                     self.select(index - 1);
-                }
-
-                else {
+                } else {
                     self.select(self.items.len() - 1)
                 }
             }
             None => self.select(0),
         }
     }
-
 }
 
 impl StatefulWidget for DirSelectionList {
@@ -80,9 +77,13 @@ impl StatefulWidget for DirSelectionList {
 
         let list = List::new(items)
             .block(Block::default().borders(Borders::ALL))
-            .highlight_style(Style::default().add_modifier(Modifier::BOLD))
-            .highlight_symbol(">> ");
-
+            .highlight_style(
+                Style::default()
+                    .add_modifier(Modifier::BOLD)
+                    //TODO: maybe get colors from the terminal colors?
+                    .bg(ratatui::style::Color::Blue)
+                    .fg(ratatui::style::Color::Rgb(0, 0, 0)),
+            );
         StatefulWidget::render(list, area, buf, state)
     }
 }

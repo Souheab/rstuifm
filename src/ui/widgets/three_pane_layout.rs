@@ -13,23 +13,23 @@ use super::DirSelectionList;
 
 #[derive(Clone)]
 pub struct ThreePaneLayout {
-    dir_selection_list: DirSelectionList,
+    mid_pane: DirSelectionList,
 }
 
 impl ThreePaneLayout {
     pub fn new(dir_list: DirList) -> ThreePaneLayout {
         ThreePaneLayout {
-            dir_selection_list: DirSelectionList::from(dir_list),
+            mid_pane: DirSelectionList::from(dir_list),
         }
     }
 
     pub fn select_next(&mut self, terminal: &mut Terminal<CrosstermBackend<Stdout>>) {
-        self.dir_selection_list.select_next();
+        self.mid_pane.select_next();
         self.draw(terminal);
     }
 
     pub fn select_previous(&mut self, terminal: &mut Terminal<CrosstermBackend<Stdout>>) {
-        self.dir_selection_list.select_previous();
+        self.mid_pane.select_previous();
         self.draw(terminal);
     }
 
@@ -62,8 +62,8 @@ impl Widget for ThreePaneLayout {
             block.clone().render(*chunk, buf);
         }
 
-        self.dir_selection_list
+        self.mid_pane
             .clone()
-            .render(chunks[1], buf, &mut self.dir_selection_list.state);
+            .render(chunks[1], buf, &mut self.mid_pane.state);
     }
 }

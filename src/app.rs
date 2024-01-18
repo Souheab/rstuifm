@@ -1,7 +1,7 @@
 use crate::backend::events::event_handler::EventHandler;
 use crate::backend::AppBackend;
 use anyhow::{Context, Result};
-use std::env;
+use std::{env, thread, time::Duration};
 
 pub fn run() -> Result<()> {
     let mut app_backend = AppBackend::new(
@@ -16,5 +16,7 @@ pub fn run() -> Result<()> {
         event_handler
             .process_events(&mut app_backend)
             .context("[main app.rs loop] Failed to process events")?;
+
+        thread::sleep(Duration::from_millis(5));
     }
 }
