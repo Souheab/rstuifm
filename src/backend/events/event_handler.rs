@@ -25,7 +25,7 @@ impl EventHandler {
             if let Ok(event) = event::read() {
                 crossterm_event_tx_clone.send(event).expect("Unable to send message to crossterm_event mpsc while inside event_listener thread");
             }
-            thread::sleep(Duration::from_millis(100));
+            thread::sleep(Duration::from_millis(50));
         });
 
         Ok(EventHandler {
@@ -56,10 +56,9 @@ fn process_crossterm_event(
         }
 
         Event::Resize(_width, _height) => {
-            app_backend
-                .ui_context_mut_ref()
-                .process_terminal_resize()
-                .context("[event_handler] failed to respond to terminal resize")?;
+            let terminal = &mut app_backend.terminal;
+            let ui = &app_backend.tabs.selected_tab_ref().ui;
+            ui::functions::process_terminal_resize(terminal, ui).context("Failed to respond to terminal resize")?;
             Ok(())
         }
 
@@ -70,5 +69,13 @@ fn process_crossterm_event(
 fn process_key_event(key: crossterm::event::KeyEvent, app_backend: &mut AppBackend) {
     if key.code == KeyCode::Char('q') {
         app_backend.exit_app().unwrap();
+    }
+
+    if key.code == KeyCode::Char('j') {
+        app_backend.select_next();
+    }
+
+    if key.code == KeyCode::Char('k') {
+        app_backend.select_previous();
     }
 }

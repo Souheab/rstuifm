@@ -1,7 +1,10 @@
+use std::{io::Stdout, rc::Rc};
+
+use anyhow::Context;
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Direction, Rect, Layout},
-    widgets::{Block, Borders, ListState, StatefulWidget, Widget},
+    widgets::{Block, Borders, ListState, StatefulWidget, Widget}, Terminal, backend::CrosstermBackend,
 };
 
 use crate::backend::DirList;
@@ -14,10 +17,28 @@ pub struct ThreePaneLayout {
 }
 
 impl ThreePaneLayout {
-    pub fn from(dir_list: DirList) -> ThreePaneLayout {
+    pub fn new(dir_list: DirList) -> ThreePaneLayout {
         ThreePaneLayout {
             dir_selection_list: DirSelectionList::from(dir_list),
         }
+    }
+
+    pub fn select_next(&mut self, terminal: &mut Terminal<CrosstermBackend<Stdout>>) {
+        self.dir_selection_list.select_next();
+        self.draw(terminal);
+    }
+
+    pub fn select_previous(&mut self, terminal: &mut Terminal<CrosstermBackend<Stdout>>) {
+        self.dir_selection_list.select_previous();
+        self.draw(terminal);
+    }
+
+    pub fn draw(&mut self, terminal: &mut Terminal<CrosstermBackend<Stdout>>) {
+        terminal.draw(|f| {
+            f.render_widget(self.clone(), f.size());
+        }).context("Failed to draw ThreePaneLayout").unwrap();
+
+        //TODO do something about this or just unwrap?
     }
 }
 

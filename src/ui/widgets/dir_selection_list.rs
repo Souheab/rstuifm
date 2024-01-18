@@ -1,8 +1,12 @@
+use std::io::Stdout;
+
 use ratatui::{
+    backend::CrosstermBackend,
     buffer::Buffer,
-    layout::Rect,
+    layout::{Rect, Layout, Direction, Constraint},
     style::{Modifier, Style},
     widgets::{Block, Borders, List, ListState, StatefulWidget},
+    Terminal,
 };
 
 use crate::backend::DirList;
@@ -19,6 +23,39 @@ impl DirSelectionList {
         state.select(Some(0));
         DirSelectionList { state, items }
     }
+
+    pub fn select(&mut self, index: usize) {
+        self.state.select(Some(index));
+    }
+
+    pub fn select_next(&mut self) {
+        match self.state.selected() {
+            Some(index) => {
+                if self.items.len()!= 0 && index >= self.items.len() - 1 {
+                    self.select(0);
+                } else {
+                    self.select(index + 1);
+                }
+            }
+            None => self.select(0),
+        }
+    }
+
+    pub fn select_previous(&mut self) {
+        match self.state.selected() {
+            Some(index) => {
+                if index != 0 {
+                    self.select(index - 1);
+                }
+
+                else {
+                    self.select(self.items.len() - 1)
+                }
+            }
+            None => self.select(0),
+        }
+    }
+
 }
 
 impl StatefulWidget for DirSelectionList {

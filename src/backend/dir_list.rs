@@ -9,6 +9,7 @@ pub struct DirList {
     folders: Vec<Folder>,
     files: Vec<File>,
     symlinks: Vec<Symlink>,
+    len: usize,
 }
 
 impl DirList {
@@ -16,6 +17,7 @@ impl DirList {
         let mut folders = Vec::new();
         let mut files = Vec::new();
         let mut symlinks = Vec::new();
+
 
         for entry in path.read_dir().context("[app_backend.DirList.new()] Failed to read directory path")? {
             let entry = entry.context("[app_backend.DirList.new()] Failed to read DirEntry")?;
@@ -29,10 +31,13 @@ impl DirList {
             }
         }
 
+        let len = folders.len() + files.len() + symlinks.len();
+
         Ok(DirList {
             folders,
             files,
             symlinks,
+            len
         })
     }
 
@@ -46,5 +51,9 @@ impl DirList {
 
     pub fn symlinks(&self) -> &Vec<Symlink> {
         &self.symlinks
+    }
+
+    pub fn len(&self) -> usize {
+        self.len.clone()
     }
 }
