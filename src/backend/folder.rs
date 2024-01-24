@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 
 #[derive(Clone)]
 pub struct Folder {
-    path: PathBuf,
+    pub path: PathBuf,
     name: String,
 }
 

@@ -7,7 +7,7 @@ use crossterm::{
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
 
-use super::widgets::ThreePaneLayout;
+use super::widgets::{ThreePaneLayout, ThreePaneLayoutState};
 
 pub fn setup_terminal() -> Result<Terminal<CrosstermBackend<io::Stdout>>> {
     let mut stdout = io::stdout();
@@ -29,10 +29,11 @@ pub fn restore_terminal(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -
 pub fn process_terminal_resize(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     ui: &ThreePaneLayout,
+    mut state: ThreePaneLayoutState,
 ) -> Result<()> {
     terminal
         .draw(|frame| {
-            frame.render_widget(ui.clone(), frame.size());
+            frame.render_stateful_widget(ui.clone(), frame.size(), &mut state);
         })
         .context("[app.run()] Failed to draw on terminal during resize")?;
 

@@ -13,50 +13,38 @@ use crate::backend::DirList;
 
 #[derive(Clone)]
 pub struct DirSelectionList {
-    pub state: ListState,
+    pub state: usize,
     pub items: DirList,
 }
 
 impl DirSelectionList {
     pub fn from(items: DirList) -> DirSelectionList {
-        let mut state = ListState::default();
-        state.select(Some(0));
-        DirSelectionList { state, items }
+        DirSelectionList { state: 0, items }
     }
 
     pub fn select(&mut self, index: usize) {
-        self.state.select(Some(index));
+        self.state = index;
     }
 
     pub fn select_next(&mut self) {
-        match self.state.selected() {
-            Some(index) => {
-                if self.items.len() != 0 && index >= self.items.len() - 1 {
-                    self.select(0);
-                } else {
-                    self.select(index + 1);
-                }
-            }
-            None => self.select(0),
+        if self.items.len() != 0 && self.state >= self.items.len() - 1 {
+            self.select(0);
+        } else {
+            self.select(self.state + 1);
         }
     }
 
     pub fn select_previous(&mut self) {
-        match self.state.selected() {
-            Some(index) => {
-                if index != 0 {
-                    self.select(index - 1);
-                } else {
-                    self.select(self.items.len() - 1)
-                }
-            }
-            None => self.select(0),
+        if self.state != 0 {
+            self.select(self.state - 1);
+        } else {
+            self.select(self.items.len() - 1)
         }
     }
 }
 
 impl StatefulWidget for DirSelectionList {
-    type State = ListState;
+    type State = usize;
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         // Turn DirList into a list of strings
         let folders: Vec<String> = self.items.folders().iter().map(|x| x.to_string()).collect();
@@ -84,6 +72,8 @@ impl StatefulWidget for DirSelectionList {
                     .bg(ratatui::style::Color::Blue)
                     .fg(ratatui::style::Color::Rgb(0, 0, 0)),
             );
-        StatefulWidget::render(list, area, buf, state)
+        let mut list_state = ListState::default();
+        list_state.select(Some(self.state));
+        StatefulWidget::render(list, area, buf, &mut list_state)
     }
 }

@@ -75,9 +75,10 @@ fn process_crossterm_event(
 ) -> Result<()> {
     match event {
         Event::Resize(_width, _height) => {
+            let state = app_backend.get_new_state();
             let terminal = &mut app_backend.terminal;
             let ui = &app_backend.tabs.selected_tab_ref().ui;
-            ui::functions::process_terminal_resize(terminal, ui)
+            ui::functions::process_terminal_resize(terminal, ui, state)
                 .context("Failed to respond to terminal resize")?;
             Ok(())
         }
