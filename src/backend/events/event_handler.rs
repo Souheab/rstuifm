@@ -1,23 +1,18 @@
 use anyhow::{Context, Result};
 use crossterm::event::{self, Event, KeyCode};
 use std::{
-    thread::{self, JoinHandle},
+    thread,
     time::Duration,
 };
 
 use crate::{backend::AppBackend, ui};
 
-use crossbeam::channel;
-
 // TODO create a seperate channel for input events, as these may be blocking with other terminal events and need to be cleared if the channel is stacked
 // TODO use bounded channels with crossbeam prolly
 
 pub struct EventHandler {
-    crossterm_event_tx: crossbeam::channel::Sender<crossterm::event::Event>,
     crossterm_event_rx: crossbeam::channel::Receiver<crossterm::event::Event>,
-    input_event_tx: crossbeam::channel::Sender<crossterm::event::KeyEvent>,
     input_event_rx: crossbeam::channel::Receiver<crossterm::event::KeyEvent>,
-    event_listener: JoinHandle<()>,
 }
 
 impl EventHandler {
@@ -28,7 +23,7 @@ impl EventHandler {
         let crossterm_event_tx_clone = crossterm_event_tx.clone();
         let input_event_tx_clone = input_event_tx.clone();
 
-        let event_listener = thread::spawn(move || loop {
+        thread::spawn(move || loop {
             if let Ok(event) = event::read() {
                 match event {
                     Event::Key(key_event) => {
@@ -44,11 +39,8 @@ impl EventHandler {
         });
 
         Ok(EventHandler {
-            crossterm_event_tx,
             crossterm_event_rx,
-            input_event_tx,
             input_event_rx,
-            event_listener,
         })
     }
 
@@ -92,6 +84,8 @@ fn process_key_event(key: crossterm::event::KeyEvent, app_backend: &mut AppBacke
         KeyCode::Char('q') => app_backend.exit_app().unwrap(),
         KeyCode::Char('j') => app_backend.select_next(),
         KeyCode::Char('k') => app_backend.select_previous(),
+        KeyCode::Char('l') => app_backend.select_right(),
+        KeyCode::Char('h') => app_backend.select_left(),
         _ => (),
     }
 }

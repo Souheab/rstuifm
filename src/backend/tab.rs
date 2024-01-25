@@ -1,10 +1,7 @@
 use anyhow::{anyhow, Result};
-use ratatui::{widgets::ListState, Terminal, backend::CrosstermBackend};
-use std::{path::PathBuf, io::Stdout};
-
-use crate::ui::{widgets::{ThreePaneLayout, ThreePaneLayoutState}, self};
-
-use super::DirList;
+use std::path::PathBuf;
+use crate::ui::widgets::{ThreePaneLayout, DirSelectionList};
+use super::{DirList, dir_list::FileSystemItem};
 
 pub struct Tab {
     pub working_directory: PathBuf,
@@ -17,7 +14,7 @@ pub struct Tabs {
 }
 
 impl Tabs {
-    pub fn new(tabs_vec: Vec<Tab>, selected_index: usize) -> Result<Tabs> {
+    pub fn new(tabs_vec: Vec<Tab>) -> Result<Tabs> {
 
         if tabs_vec.is_empty() {
             Err(anyhow!("Tabs Vec is empty, there must be at least one tab"))
@@ -41,13 +38,23 @@ impl Tabs {
 
 impl Tab {
     pub fn new(working_directory: PathBuf, dir_list: DirList) -> Tab {
-        let selected_item = ListState::default();
         let ui = ThreePaneLayout::new(dir_list);
 
         Tab {
             working_directory,
             ui,
         }
+    }
+
+    pub fn selected_item(&self) -> FileSystemItem {
+        let index = self.ui.mid_pane.state;
+        self.ui.mid_pane.items.get(index).unwrap()
+    }
+
+
+    pub fn select(&mut self, new_path: PathBuf, new_dir_list: DirList) {
+        self.working_directory = new_path;
+        self.ui.mid_pane = DirSelectionList::from(new_dir_list);
     }
 
 }

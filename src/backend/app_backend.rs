@@ -1,7 +1,8 @@
 use super::dir_list::FileSystemItem;
 use super::{DirList, Tab, Tabs};
+use crate::helper_functions;
 use crate::ui;
-use crate::ui::widgets::ThreePaneLayoutState;
+use crate::ui::widgets::{RightPane, ThreePaneLayoutState};
 use anyhow::{Context, Result};
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::path::PathBuf;
@@ -15,16 +16,15 @@ pub struct AppBackend {
 
 impl AppBackend {
     pub fn new(initial_path: PathBuf) -> Result<AppBackend> {
-        let mut terminal = crate::ui::functions::setup_terminal()
+        let terminal = crate::ui::functions::setup_terminal()
             .context("[AppBackend.new()] Failed to setup terminal")?;
         let main_dir_list = DirList::new(&initial_path)?;
         let dirlist_cache = HashMap::new();
         let tab = Tab::new(initial_path, main_dir_list);
 
-
         let mut tabs_vec: Vec<Tab> = Vec::new();
         tabs_vec.push(tab);
-        let tabs = Tabs::new(tabs_vec, 0).context("Failed to create tabs")?;
+        let tabs = Tabs::new(tabs_vec).context("Failed to create tabs")?;
 
         let mut backend = AppBackend {
             dirlist_cache,
@@ -34,9 +34,14 @@ impl AppBackend {
 
         let mut state = backend.get_new_state();
 
-        backend.terminal
+        backend
+            .terminal
             .draw(|frame| {
-                frame.render_stateful_widget(backend.tabs.selected_tab_ref().ui.clone(), frame.size(), &mut state);
+                frame.render_stateful_widget(
+                    backend.tabs.selected_tab_ref().ui.clone(),
+                    frame.size(),
+                    &mut state,
+                );
             })
             .context("Failed to draw on terminal")?;
         Ok(backend)
@@ -57,10 +62,6 @@ impl AppBackend {
     }
 
     pub fn select_previous(&mut self) {
-        let working_dir = {
-            let selected_tab_mut = self.tabs.selected_tab_ref_mut();
-            selected_tab_mut.working_directory.clone()
-        };
         self.tabs.selected_tab_ref_mut().ui.select_previous();
         let three_pane_layout_state = self.get_new_state();
 
@@ -77,6 +78,56 @@ impl AppBackend {
         Ok(self.dirlist_cache.get(path).unwrap())
     }
 
+    pub fn select_right(&mut self) {
+        let selected_tab = self.tabs.selected_tab_ref_mut();
+        let selected_item = selected_tab.selected_item();
+        let new_path = match selected_item {
+            FileSystemItem::Folder(folder) => Some(folder.path),
+            _ => None,
+        };
+
+        if let Some(path) = new_path {
+            let new_dir_list = self.get_dirlist(&path);
+            match new_dir_list {
+                Ok(dir_list_ref) => {
+                    let new_dir_list = dir_list_ref.clone();
+                    let selected_tab = self.tabs.selected_tab_ref_mut();
+                    selected_tab.select(path, new_dir_list)
+                }
+
+                Err(_) => {
+                    return;
+                }
+            }
+        }
+
+        let new_state = self.get_new_state();
+        self.draw(new_state);
+    }
+
+    pub fn select_left(&mut self) {
+        let selected_tab = self.tabs.selected_tab_ref_mut();
+        let working_dir = selected_tab.working_directory.clone();
+        //TODO: Deal with the error of working dir being root
+        let new_path = working_dir.parent();
+
+        match new_path {
+            Some(path) => {
+                let new_path = path.to_path_buf();
+
+                let new_dir_list = self.get_dirlist(&new_path).unwrap().clone();
+
+                let selected_tab = self.tabs.selected_tab_ref_mut();
+                selected_tab.select(new_path, new_dir_list);
+
+                let new_state = self.get_new_state();
+                self.draw(new_state);
+            }
+
+            None => {return;}
+        }
+    }
+
     pub fn get_new_state(&mut self) -> ThreePaneLayoutState {
         let working_dir = {
             let selected_tab_mut = self.tabs.selected_tab_ref_mut();
@@ -84,7 +135,7 @@ impl AppBackend {
         };
         let parent_dir = match working_dir.parent() {
             Some(path) => Some(path.to_path_buf()),
-            None => None
+            None => None,
         };
 
         let left_pane = match parent_dir {
@@ -92,11 +143,16 @@ impl AppBackend {
             None => None,
         };
 
-        let index = self.tabs.selected_tab_ref().ui.mid_pane.state;
-        let fs_item = self.tabs.selected_tab_ref().ui.mid_pane.items.get(index).unwrap();
-        let right_pane =  match fs_item {
-            FileSystemItem::Folder(folder) => Some(self.get_dirlist(&folder.path).unwrap().clone()),
-            _ => None
+        let fs_item = self.tabs.selected_tab_ref().selected_item();
+        let right_pane = match fs_item {
+            FileSystemItem::Folder(folder) => {
+                if helper_functions::can_read_directory(&folder.path) {
+                    RightPane::DirList(Some(self.get_dirlist(&folder.path).unwrap().clone()))
+                } else {
+                    RightPane::PermissionDenied
+                }
+            }
+            _ => RightPane::DirList(None),
         };
 
         ThreePaneLayoutState::new(left_pane, right_pane)

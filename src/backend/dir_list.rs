@@ -82,7 +82,7 @@ impl DirList {
             let file = self.files.get(index - self.folders.len()).unwrap().clone();
             let file = FileSystemItem::File(file);
             Some(file)
-        } else if index >= (self.files.len() + self.folders.len()) {
+        } else if index >= (self.files.len() + self.folders.len()) && index < self.len() {
             let symlink = self.symlinks.get(index - self.files.len() - self.folders.len()).unwrap().clone();
             let symlink = FileSystemItem::Symlink(symlink);
             Some(symlink)

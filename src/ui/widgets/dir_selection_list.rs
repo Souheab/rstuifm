@@ -1,12 +1,8 @@
-use std::io::Stdout;
-
 use ratatui::{
-    backend::CrosstermBackend,
     buffer::Buffer,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::Rect,
     style::{Modifier, Style},
-    widgets::{Block, Borders, List, ListState, StatefulWidget},
-    Terminal,
+    widgets::{Block, Borders, List, ListState, Widget, StatefulWidget},
 };
 
 use crate::backend::DirList;
@@ -43,9 +39,8 @@ impl DirSelectionList {
     }
 }
 
-impl StatefulWidget for DirSelectionList {
-    type State = usize;
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+impl Widget for DirSelectionList {
+    fn render(self, area: Rect, buf: &mut Buffer) {
         // Turn DirList into a list of strings
         let folders: Vec<String> = self.items.folders().iter().map(|x| x.to_string()).collect();
         let files: Vec<String> = self.items.files().iter().map(|x| x.to_string()).collect();

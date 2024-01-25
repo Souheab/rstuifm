@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 
 #[derive(Clone)]
 pub struct File {
-    path: PathBuf,
+    _path: PathBuf,
     name: String,
 }
 
@@ -21,6 +21,6 @@ impl File {
             .to_str()
             .ok_or_else(|| anyhow!("[app_backend.File.new()] failed to unwrap Option<&str>"))?
             .to_string();
-        Ok(File { path, name })
+        Ok(File { _path: path, name })
     }
 }

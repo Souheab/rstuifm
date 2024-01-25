@@ -1,14 +1,18 @@
 use crate::backend::events::event_handler::EventHandler;
 use crate::backend::AppBackend;
 use anyhow::{Context, Result};
-use std::{env, thread, time::Duration};
+use std::{env, path::PathBuf, thread, time::Duration};
 
 pub fn run() -> Result<()> {
-    let mut app_backend = AppBackend::new(
-        env::current_dir()
-            .context("[app.run()] Failed to get current directory from environment")?,
-    )
-    .context("[app.run()] Failed to create AppBackend")?;
+    let args: Vec<String> = env::args().collect();
+    let mut initial_path = env::current_dir().unwrap();
+
+    if args.len() > 1 {
+        initial_path = PathBuf::from(&args[1]);
+    }
+
+    let mut app_backend =
+        AppBackend::new(initial_path).context("[app.run()] Failed to create AppBackend")?;
 
     let event_handler = EventHandler::new().context("Failed to make event handler")?;
 

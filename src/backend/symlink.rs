@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 
 #[derive(Clone)]
 pub struct Symlink {
-    path: PathBuf,
+    _path: PathBuf,
     name: String,
 }
 
@@ -15,7 +15,7 @@ impl Symlink {
             .to_str()
             .ok_or_else(|| anyhow!("[app_backend.Symlink.new()] failed to unwrap Option<&str>"))?
             .to_string();
-        Ok(Symlink { path, name })
+        Ok(Symlink { _path: path, name })
     }
 }
 
