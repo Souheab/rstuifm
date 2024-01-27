@@ -10,7 +10,7 @@ use super::{DirSelectionList, RightPane};
 
 #[derive(Clone)]
 pub struct ThreePaneLayout {
-    pub mid_pane: DirSelectionList,
+    pub mid_pane: Option<DirSelectionList>,
 }
 
 pub struct ThreePaneLayoutState {
@@ -30,16 +30,24 @@ impl ThreePaneLayoutState {
 impl ThreePaneLayout {
     pub fn new(dir_list: DirList) -> ThreePaneLayout {
         ThreePaneLayout {
-            mid_pane: DirSelectionList::from(dir_list),
+            mid_pane: Some(DirSelectionList::from(dir_list)),
         }
     }
 
+    pub fn default() -> ThreePaneLayout {
+        ThreePaneLayout { mid_pane: None }
+    }
+
     pub fn select_next(&mut self) {
-        self.mid_pane.select_next();
+        if let Some(mid_pane) = &mut self.mid_pane {
+            mid_pane.select_next();
+        }
     }
 
     pub fn select_previous(&mut self) {
-        self.mid_pane.select_previous();
+        if let Some(mid_pane) = &mut self.mid_pane {
+            mid_pane.select_previous();
+        }
     }
 }
 
@@ -64,9 +72,9 @@ impl StatefulWidget for ThreePaneLayout {
             block.clone().render(*chunk, buf);
         }
 
-        self.mid_pane
-            .clone()
-            .render(chunks[1], buf);
+        if let Some(mid_pane) = self.mid_pane {
+            mid_pane.clone().render(chunks[1], buf);
+        }
 
         let left_pane = state.left_pane.clone();
         let right_pane = state.right_pane.clone();

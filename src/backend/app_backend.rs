@@ -81,28 +81,34 @@ impl AppBackend {
     pub fn select_right(&mut self) {
         let selected_tab = self.tabs.selected_tab_ref_mut();
         let selected_item = selected_tab.selected_item();
-        let new_path = match selected_item {
-            FileSystemItem::Folder(folder) => Some(folder.path),
-            _ => None,
-        };
 
-        if let Some(path) = new_path {
-            let new_dir_list = self.get_dirlist(&path);
-            match new_dir_list {
-                Ok(dir_list_ref) => {
-                    let new_dir_list = dir_list_ref.clone();
-                    let selected_tab = self.tabs.selected_tab_ref_mut();
-                    selected_tab.select(path, new_dir_list)
+        match selected_item {
+            Some(selected_item) => {
+                let new_path = match selected_item {
+                    FileSystemItem::Folder(folder) => Some(folder.path),
+                    _ => None,
+                };
+
+                if let Some(path) = new_path {
+                    let new_dir_list = self.get_dirlist(&path);
+                    match new_dir_list {
+                        Ok(dir_list_ref) => {
+                            let new_dir_list = dir_list_ref.clone();
+                            let selected_tab = self.tabs.selected_tab_ref_mut();
+                            selected_tab.select(path, new_dir_list)
+                        }
+
+                        Err(_) => {
+                            return;
+                        }
+                    }
                 }
 
-                Err(_) => {
-                    return;
-                }
+                let new_state = self.get_new_state();
+                self.draw(new_state);
             }
+            None => (),
         }
-
-        let new_state = self.get_new_state();
-        self.draw(new_state);
     }
 
     pub fn select_left(&mut self) {
@@ -124,7 +130,9 @@ impl AppBackend {
                 self.draw(new_state);
             }
 
-            None => {return;}
+            None => {
+                return;
+            }
         }
     }
 
@@ -144,16 +152,20 @@ impl AppBackend {
         };
 
         let fs_item = self.tabs.selected_tab_ref().selected_item();
-        let right_pane = match fs_item {
-            FileSystemItem::Folder(folder) => {
-                if helper_functions::can_read_directory(&folder.path) {
-                    RightPane::DirList(Some(self.get_dirlist(&folder.path).unwrap().clone()))
-                } else {
-                    RightPane::PermissionDenied
+        let mut right_pane = RightPane::DirList(None);
+
+        if let Some(fs_item) = fs_item {
+            right_pane = match fs_item {
+                FileSystemItem::Folder(folder) => {
+                    if helper_functions::can_read_directory(&folder.path) {
+                        RightPane::DirList(Some(self.get_dirlist(&folder.path).unwrap().clone()))
+                    } else {
+                        RightPane::PermissionDenied
+                    }
                 }
-            }
-            _ => RightPane::DirList(None),
-        };
+                _ => RightPane::DirList(None),
+            };
+        }
 
         ThreePaneLayoutState::new(left_pane, right_pane)
     }

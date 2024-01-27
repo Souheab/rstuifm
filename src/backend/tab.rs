@@ -1,7 +1,7 @@
+use super::{dir_list::FileSystemItem, DirList};
+use crate::ui::widgets::{DirSelectionList, ThreePaneLayout};
 use anyhow::{anyhow, Result};
 use std::path::PathBuf;
-use crate::ui::widgets::{ThreePaneLayout, DirSelectionList};
-use super::{DirList, dir_list::FileSystemItem};
 
 pub struct Tab {
     pub working_directory: PathBuf,
@@ -15,7 +15,6 @@ pub struct Tabs {
 
 impl Tabs {
     pub fn new(tabs_vec: Vec<Tab>) -> Result<Tabs> {
-
         if tabs_vec.is_empty() {
             Err(anyhow!("Tabs Vec is empty, there must be at least one tab"))
         } else {
@@ -33,7 +32,6 @@ impl Tabs {
     pub fn selected_tab_ref_mut(&mut self) -> &mut Tab {
         self.tabs_vec.get_mut(self.selected_index).unwrap()
     }
-
 }
 
 impl Tab {
@@ -46,15 +44,18 @@ impl Tab {
         }
     }
 
-    pub fn selected_item(&self) -> FileSystemItem {
-        let index = self.ui.mid_pane.state;
-        self.ui.mid_pane.items.get(index).unwrap()
+    pub fn selected_item(&self) -> Option<FileSystemItem> {
+        match &self.ui.mid_pane {
+            Some(mid_pane) => {
+                let index = mid_pane.state;
+                mid_pane.items.get(index)
+            }
+            None => None,
+        }
     }
-
 
     pub fn select(&mut self, new_path: PathBuf, new_dir_list: DirList) {
         self.working_directory = new_path;
-        self.ui.mid_pane = DirSelectionList::from(new_dir_list);
+        self.ui.mid_pane = Some(DirSelectionList::from(new_dir_list));
     }
-
 }
