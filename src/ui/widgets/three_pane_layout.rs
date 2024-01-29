@@ -11,6 +11,7 @@ use super::{DirSelectionList, RightPane};
 #[derive(Clone)]
 pub struct ThreePaneLayout {
     pub mid_pane: Option<DirSelectionList>,
+    pub dot_files_enabled: bool,
 }
 
 pub struct ThreePaneLayoutState {
@@ -31,11 +32,12 @@ impl ThreePaneLayout {
     pub fn new(dir_list: DirList) -> ThreePaneLayout {
         ThreePaneLayout {
             mid_pane: Some(DirSelectionList::from(dir_list)),
+            dot_files_enabled: true
         }
     }
 
     pub fn default() -> ThreePaneLayout {
-        ThreePaneLayout { mid_pane: None }
+        ThreePaneLayout { mid_pane: None , dot_files_enabled: true}
     }
 
     pub fn select_next(&mut self) {
@@ -60,9 +62,9 @@ impl StatefulWidget for ThreePaneLayout {
             .direction(Direction::Horizontal)
             .constraints(
                 [
-                    Constraint::Ratio(1, 3),
-                    Constraint::Ratio(1, 3),
-                    Constraint::Ratio(1, 3),
+                    Constraint::Percentage(20),
+                    Constraint::Percentage(30),
+                    Constraint::Percentage(50),
                 ]
                 .as_ref(),
             )
